@@ -1,1 +1,4 @@
 project_id = "cpjiqdhhfwzyrfmcygkb"
+
+[functions.process-tryon]
+verify_jwt = false
