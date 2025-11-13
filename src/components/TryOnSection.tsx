@@ -67,6 +67,18 @@ const TryOnSection = () => {
 
       if (error) throw error;
 
+      if (data?.error) {
+        // Handle specific error messages from the edge function
+        if (data.error.includes("Payment required") || data.error.includes("credits")) {
+          toast.error("Lovable AI credits required. Please add credits to your workspace to use AI features.", {
+            duration: 6000,
+          });
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
+
       setResultUrl(data.resultUrl);
       toast.success("Virtual try-on complete!");
     } catch (error) {
