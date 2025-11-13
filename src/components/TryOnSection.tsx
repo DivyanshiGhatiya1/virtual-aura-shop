@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Upload, Loader2, Download, Sparkles } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
+import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -12,6 +13,7 @@ const TryOnSection = () => {
   const [productPhotoPreview, setProductPhotoPreview] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string>("");
+  const [paymentRequired, setPaymentRequired] = useState<boolean>(false);
 
   const handleUserPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,6 +56,7 @@ const TryOnSection = () => {
 
     setIsProcessing(true);
     setResultUrl("");
+    setPaymentRequired(false);
 
     try {
       // Upload both images
@@ -65,11 +68,20 @@ const TryOnSection = () => {
         body: { userPhotoUrl, productPhotoUrl }
       });
 
-      if (error) throw error;
+      if (error) {
+        const msg = (error as any)?.message?.toString().toLowerCase() || "";
+        if (msg.includes("402") || msg.includes("payment") || msg.includes("credits")) {
+          setPaymentRequired(true);
+          toast.error("Lovable AI credits required. Please add credits to your workspace to use AI features.", { duration: 6000 });
+          return;
+        }
+        throw error;
+      }
 
       if (data?.error) {
         // Handle specific error messages from the edge function
         if (data.error.includes("Payment required") || data.error.includes("credits")) {
+          setPaymentRequired(true);
           toast.error("Lovable AI credits required. Please add credits to your workspace to use AI features.", {
             duration: 6000,
           });
@@ -186,7 +198,7 @@ const TryOnSection = () => {
         </div>
 
         {/* Generate Button */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <Button
             size="lg"
             onClick={handleGenerate}
@@ -207,7 +219,17 @@ const TryOnSection = () => {
           </Button>
         </div>
 
-        {/* Result */}
+        {paymentRequired && (
+          <div className="max-w-2xl mx-auto mb-8">
+            <Alert variant="destructive">
+              <AlertTitle>AI credits required</AlertTitle>
+              <AlertDescription>
+                This feature uses Lovable AI. Please add credits in Settings → Workspace → Usage, then try again.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
         {resultUrl && (
           <Card className="p-8 bg-card/50 backdrop-blur-sm border-primary/50 animate-in fade-in slide-in-from-bottom duration-700">
             <div className="space-y-6">
